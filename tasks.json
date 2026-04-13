@@ -1,0 +1,12 @@
+{
+  "label": "Open Tmux Session",
+  "command": "tmux attach -t $(basename \"$ZED_WORKTREE_ROOT\" | tr '.' '_') 2>/dev/null || tmux new-session -s -A $(basename \"$ZED_WORKTREE_ROOT\" | tr '.' '_')",
+  "args": [],
+  "env": {},
+  "cwd": "$ZED_WORKTREE_ROOT",
+  "use_new_terminal": false,
+  "allow_concurrent_runs": true,
+  "reveal": "always",
+  "hide": "on_success",
+  "tags": ["tmux", "terminal"]
+}

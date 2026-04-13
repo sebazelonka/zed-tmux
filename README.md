@@ -4,83 +4,182 @@ Automatically open tmux sessions based on your current Zed project.
 
 ## Features
 
-- Opens tmux session corresponding to your current Zed project
-- Session name is derived from project folder name
-- Automatically attaches to existing session or creates a new one
-- Sanitizes special characters for valid tmux session names
+- ✅ Detects current Zed project using `$ZED_WORKTREE_ROOT` variable
+- ✅ Opens tmux session matching the project folder name
+- ✅ Creates new session if it doesn't exist
+- ✅ Attaches to existing session if available
+- ✅ Keybindings for quick access (Alt+T, Alt+S, Alt+Cmd+T)
+- ✅ Shows terminal in center area
+- ✅ Hides terminal after success
+- ✅ Supports concurrent runs (can switch between projects)
 
 ## Installation
 
-### As a Dev Extension
+### Option 1: Copy files to Zed config
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/sebazelonka/zed-tmux.git
-   cd zed-tmux
-   ```
+1. Create directory: `~/.config/zed/tmux-integration/`
+2. Copy all files from this repo:
+   - `tasks.json` → `~/.config/zed/tmux-integration/tasks.json`
+   - `keymap.json` → `~/.config/zed/tmux-integration/keymap.json`
 
-2. Install Rust via rustup (if not already installed):
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   ```
+### Option 2: Clone repository
 
-3. Build the extension:
-   ```bash
-   cargo build --release
-   ```
+```bash
+cd ~/.config/zed
+git clone https://github.com/sebazelonka/zed-tmux.git tmux-integration
+```
 
-4. In Zed, open the Extensions panel (Cmd+Shift+X)
-5. Click "Install Dev Extension"
-6. Select the directory containing this extension
+Then open Zed settings and add the `tmux-integration` directory to your workspace.
 
 ## Usage
 
-Once installed, open the command palette (Cmd+Shift+P) and type:
+### With Keybindings (Recommended)
 
+Press one of these keys:
+- **Alt+T** - Quick toggle (any layout)
+- **Alt+S** - Quick toggle (any layout)
+- **Alt+Cmd+T** - Quick toggle (any layout)
+
+### From Command Palette
+
+1. Press `Cmd-Shift-P` (or `Ctrl-Shift-P`)
+2. Type "tmux"
+3. Press Enter
+
+The task will automatically:
+1. Get the current project path from `$ZED_WORKTREE_ROOT`
+2. Extract the folder name (e.g., `my-project` from `/path/to/my-project`)
+3. Sanitize it for tmux (replace special chars with `_`)
+4. Attach to existing session if available
+5. Create new session with `-s -A` flag if it doesn't exist
+
+## How It Works
+
+### Session Naming
+
+The tmux session name is derived from your project folder:
+
+| Project Path | Tmux Session |
+|-------------|---------------|
+| `/home/user/projects/my-app` | `my_app` |
+| `/home/user/projects/work/project` | `project` |
+| `/home/user/projects/site-2024` | `site_2024` |
+
+**Sanitization:** Special characters (`.`, ` `, `:`, `/`, `\`) are replaced with `_` to avoid tmux issues.
+
+### Behavior
+
+**If session exists:**
 ```
-/tmux
+tmux attach -t session_name
 ```
 
-This will attach to or create a tmux session named after your current project folder.
+**If session doesn't exist:**
+```
+tmux new-session -s -A session_name
+```
 
-### Example
+The `-s -A` flag (session-name-after) ensures the session is detached before creating it.
 
-If your project is at `/home/user/projects/my-app`, this extension will:
+## Configuration Options
 
-1. Extract the project name: `my-app`
-2. Try to attach to tmux session: `my-app`
-3. If it doesn't exist, create a new session: `my-app`
-4. Attach to that session
+### Terminal Focus
 
-## Requirements
+The task uses `reveal: "always"` which means:
+- Terminal tab is always shown
+- Focus moves to the terminal after task completes
+- Works with both new and existing terminals
 
-- [Zed](https://zed.dev/)
-- [tmux](https://github.com/tmux/tmux) installed and available in PATH
-- [Rust](https://www.rust-lang.org/) (for building)
+### Concurrent Runs
 
-## Session Name Rules
+`allow_concurrent_runs: true` allows you to:
+- Switch between tmux sessions without waiting
+- Cancel previous tasks
+- Have multiple sessions running
 
-The session name is derived from your project folder:
+### Hide Behavior
 
-- **Path:** `/home/user/projects/my-app` → **Session:** `my-app`
-- **Path:** `/home/user/projects/work/cool-project` → **Session:** `cool-project`
-- **Path:** `/home/user/Projects/2024/portfolio` → **Session:** `2024_portfolio`
+`hide: "on_success"` means:
+- Terminal tab hides after tmux command completes successfully
+- Keeps your workspace clean
+- Reappears when you run the task again
 
-Special characters (`.` ` ` `:` `/` `\`) are replaced with `_` for valid tmux session names.
+## Customization
 
-## Limitations
+### Change Keybindings
 
-- Does not detect project changes automatically (Zed doesn't expose project change events to extensions)
-- Requires manual execution of the `/tmux` command
-- Requires tmux to be installed on your system
+Edit `~/.config/zed/tmux-integration/keymap.json`:
 
-## Future Improvements
+```json
+[
+  {
+    "context": "Workspace",
+    "bindings": {
+      "ctrl-t": "task::Spawn"  // Change to your preferred key
+    }
+  }
+]
+```
 
-- [ ] Auto-detect project changes (requires Zed API enhancement)
-- [ ] Configuration for custom tmux commands
-- [ ] Support for multiple session profiles per project
-- [ ] Add command to list available tmux sessions
+### Modify Tmux Command
+
+Edit `~/.config/zed/tmux-integration/tasks.json`:
+
+```json
+{
+  "command": "tmux attach -t my_custom_session",
+  "args": [],
+  "env": {},
+  "cwd": "$ZED_WORKTREE_ROOT",
+  ...
+}
+```
+
+### Use Different Shell
+
+If you need a specific shell, add to `tasks.json`:
+
+```json
+{
+  "command": "...",
+  "shell": {
+    "program": "/bin/zsh"
+  },
+  ...
+}
+```
+
+## Troubleshooting
+
+### Tmux command not found
+
+If you get "tmux: command not found":
+1. Install tmux: `brew install tmux`
+2. Or add tmux to PATH
+3. Restart Zed
+
+### Session name issues
+
+If tmux session names look weird, check:
+1. Project folder name contains special characters
+2. Manual session exists with that name
+3. Try `tmux list-sessions` to see active sessions
+
+### Task not appearing in task picker
+
+1. Make sure files are in `~/.config/zed/tmux-integration/`
+2. Restart Zed
+3. Try running `zed: open tasks` to verify it's loaded
+
+## Alternative: Manual Tmux Management
+
+If you prefer managing tmux manually, consider:
+
+- **[tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect)** - Save/restore tmux sessions
+- **[tmux-continuum](https://github.com/tmux-plugins/tmux-continuum)** - Continuous saving of tmux environment
+
+These plugins can automatically save and restore your tmux sessions, making manual switching unnecessary.
 
 ## License
 
-MIT License - see LICENSE file for details
+MIT
