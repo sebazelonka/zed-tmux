@@ -1,0 +1,7 @@
+id = "zed-tmux"
+name = "Zed Tmux Integration"
+version = "0.1.0"
+schema_version = 1
+authors = ["Seba <sebazelonka@users.noreply.github.com>"]
+description = "Automatically open tmux sessions based on current Zed project"
+repository = "https://github.com/sebazelonka/zed-tmux"
